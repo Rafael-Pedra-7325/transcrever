@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcrição de Voz</title>
+    <style>
+        /* Estilos básicos para deixar a página bonita e centralizada */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Estilização do botão */
+        #botao-mic {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            outline: none;
+        }
+
+        #botao-mic:active {
+            transform: scale(0.98);
+        }
+
+        /* Classes para os estados Ligado/Desligado */
+        .desligado {
+            background-color: #dc3545; /* Vermelho */
+        }
+        .desligado:hover { background-color: #c82333; }
+
+        .ligado {
+            background-color: #28a745; /* Verde */
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+        .ligado:hover { background-color: #218838; }
+
+        /* Caixa onde o texto vai aparecer */
+        #texto-transcrito {
+            margin-top: 25px;
+            padding: 15px;
+            min-height: 150px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fafafa;
+            text-align: left;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #444;
+            white-space: pre-wrap; /* Mantém as quebras de linha */
+        }
+
+        .texto-provisorio {
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎙️ Bloco de Notas por Voz</h1>
+        
+        <button id="botao-mic" class="desligado">Ligar Microfone</button>
+        
+        <div id="texto-transcrito">O texto aparecerá aqui...</div>
+    </div>
+
+    <script>
+        // Seleciona os elementos da tela
+        const botaoMic = document.getElementById('botao-mic');
+        const caixaTexto = document.getElementById('texto-transcrito');
+
+        // Verifica se o navegador suporta a API de reconhecimento de voz
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            caixaTexto.innerHTML = "<strong>Erro:</strong> Seu navegador não suporta a gravação de voz. Tente usar o Google Chrome.";
+            botaoMic.disabled = true;
+        } else {
+            // Configura o reconhecimento de voz
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR'; // Idioma português do Brasil
+            recognition.continuous = true; // Continua ouvindo mesmo se você fizer pausas
+            recognition.interimResults = true; // Mostra os resultados enquanto você ainda está falando
+
+            let ouvindo = false;
+            let textoFinal = "";
+
+            // Quando o reconhecimento começa
+            recognition.onstart = () => {
+                ouvindo = true;
+                botaoMic.textContent = "Desligar Microfone";
+                botaoMic.classList.remove('desligado');
+                botaoMic.classList.add('ligado');
+                
+                if (textoFinal === "") {
+                    caixaTexto.innerHTML = "";
+                }
+            };
+
+            // Quando o reconhecimento é parado
+            recognition.onend = () => {
+                ouvindo = false;
+                botaoMic.textContent = "Ligar Microfone";
+                botaoMic.classList.remove('ligado');
+                botaoMic.classList.add('desligado');
+            };
+
+            // Quando a API captura a voz e transforma em texto
+            recognition.onresult = (event) => {
+                let textoProvisorio = "";
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcricao = event.results[i][0].transcript;
+                    
+                    if (event.results[i].isFinal) {
+                        textoFinal += transcricao + " ";
+                    } else {
+                        textoProvisorio += transcricao;
+                    }
+                }
+
+                // Atualiza a tela: junta o texto já confirmado com o texto que ainda está sendo processado
+                caixaTexto.innerHTML = textoFinal + '<span class="texto-provisorio">' + textoProvisorio + '</span>';
+            };
+
+            // Tratamento de erros (ex: usuário negou acesso ao microfone)
+            recognition.onerror = (event) => {
+                console.error("Erro no reconhecimento: ", event.error);
+                if (event.error === 'not-allowed') {
+                    alert("Você precisa permitir o acesso ao microfone no seu navegador.");
+                }
+            };
+
+            // Ação de clicar no botão Ligar/Desligar
+            botaoMic.addEventListener('click', () => {
+                if (ouvindo) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
